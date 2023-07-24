@@ -118,8 +118,8 @@ def main():
                             (epoch))
                 plt.clf()
 
-            checkpoint = torch.load('./checkpoint_experiment_theta_Frank.pth')
-            model.load_state_dict(checkpoint['model_state_dict'])
+        checkpoint = torch.load('./checkpoint_experiment_theta_Frank.pth')
+        model.load_state_dict(checkpoint['model_state_dict'])
         print(theta_true)
         print(model.shape_t.item())
         print(model.shape_c.item())
