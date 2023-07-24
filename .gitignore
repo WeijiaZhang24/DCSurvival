@@ -2,5 +2,6 @@ __pycache__/
 *.pth
 *.swp
 *.log
+*.png
 wandb/
 .ipynb_checkpoints
