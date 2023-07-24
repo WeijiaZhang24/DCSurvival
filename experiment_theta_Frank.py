@@ -11,8 +11,8 @@ import numpy as np
 from dirac_phi import DiracPhi
 from survival import SurvivalCopula
 from survival import sample
-torch.set_default_tensor_type(torch.DoubleTensor)
 torch.backends.cudnn.allow_tf32 = False
+torch.set_default_tensor_type(torch.DoubleTensor)
 torch.set_num_threads(16)
 
 device = torch.device("cuda:0")
@@ -50,7 +50,6 @@ def main():
 
         phi = DiracPhi(depth, widths, lc_w_range, shift_w_range, device, tol = 1e-10).to(device)
         model = SurvivalCopula(phi, device = device, num_features=10, tol=1e-10).to(device)
-        # optimizer = get_optim(optim_name, net, optim_args)
         optimizer = optim.Adam(model.parameters(), lr = 0.01)
         # optimizer_event = optim.Adam([{"params": [model.scale_t], "lr": 0.01},
         #                             {"params": [model.shape_t], "lr": 0.01},
