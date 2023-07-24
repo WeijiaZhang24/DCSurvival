@@ -16,7 +16,7 @@ torch.backends.cudnn.allow_tf32 = False
 torch.set_num_threads(16)
 
 device = torch.device("cuda:0")
-batch_size = 20000
+batch_size = 10000
 num_epochs = 20000
 copula_form = 'Frank'
 sample_size = 30000
