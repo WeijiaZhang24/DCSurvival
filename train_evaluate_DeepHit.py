@@ -18,9 +18,8 @@ sample_size=30000
 
 method ='DeepHit'
 copula_form='Clayton'
-risk = 'nonlinear'
+risk = 'linear'
 print(method)
-print(copula_form)
 print(risk)
 
 def main():
@@ -28,7 +27,10 @@ def main():
         survival_l1 = []
         if theta_true==0:
             copula_form='Independent'
-        for repeat in tqdm(range(10)):
+        else:
+            copula_form='Clayton'
+        print(copula_form)
+        for repeat in range(5):
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)   
             if risk=='linear':
@@ -36,9 +38,9 @@ def main():
             elif risk=='nonlinear':
                 X, observed_time, event_indicator, _, _ = nonlinear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             # split train test
-            X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33)
+            X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33, random_state=repeat)
             # split train val
-            X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33)
+            X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33, random_state=repeat)
 
             if method=='DeepHit':
                 num_durations = 1000

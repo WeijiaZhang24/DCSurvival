@@ -21,19 +21,21 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 likelihood_threshold = 1e-10
 
 
-copula_form='Clayton'
 method ='uai2023'
 risk = 'linear'
-print(copula_form)
-print(method)
-print(risk)
+print(method, risk)
 
 def main(risk="linear"):
-    for theta_true in [1,2,3,4,5,6,7,8,9,10,12,14,16,18,20]:
+    for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
         survival_l1 = []
-        for repeat in tqdm(range(5)):
+        for repeat in range(5):
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)
+            if theta_true==0:
+                copula_form = "Independent"
+            else:
+                copula_form = "Clayton"
+                print(copula_form)
             if risk == 'linear':
                 X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             elif risk == 'nonlinear':
@@ -49,7 +51,7 @@ def main(risk="linear"):
                 event_indicator_tensor_train = torch.tensor(indicator_train).to(device)
                 covariate_tensor_train = torch.tensor(X_train).to(device)
                 dataset = TensorDataset(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)     
-                batch_size = 4096  # set your batch size
+                batch_size = 8192  # set your batch size
                 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
                 model = WeibullModelClayton(X.shape[1]).to(device)

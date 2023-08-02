@@ -14,24 +14,25 @@ from metrics.metric_sksurv import surv_diff
 from synthetic_dgp import linear_dgp,nonlinear_dgp
 from sklearn.model_selection import train_test_split
 
-copula_form='Clayton'
 sample_size=30000
 num_threads = 32
 
 risk="linear"
 method ='RSF'
-print(copula_form)
 print(method)
 print(risk)
 
 def main():
-    for theta_true in [1,2,3,4,5,6,7,8,9,10,12,14,16,18,20]:
+    for theta_true in [0]:
         survival_l1 = []
         for repeat in range(5): 
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)   
             if theta_true==0:
                 copula_form = "Independent"
+            else:
+                copula_form = "Clayton"
+                print(copula_form)
             if risk=="linear":
                 X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             elif risk == "nonlinear":
