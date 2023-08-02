@@ -15,7 +15,7 @@ from synthetic_dgp import linear_dgp, nonlinear_dgp
 from sklearn.model_selection import train_test_split
 
 sample_size=30000
-
+torch.set_num_threads(6)
 torch.set_default_tensor_type(torch.DoubleTensor)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 likelihood_threshold = 1e-10

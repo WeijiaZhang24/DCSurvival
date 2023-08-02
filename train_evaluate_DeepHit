@@ -24,7 +24,7 @@ print(copula_form)
 print(risk)
 
 def main():
-    for theta_true in [2,3,4,5,6,7,8,9,10,12,14,16,18,20]:
+    for theta_true in [1,5,6,7,8,9,10,12,14,16,18,20]:
         survival_l1 = []
         for repeat in tqdm(range(10)):
             seed = 142857 + repeat
