@@ -50,7 +50,7 @@ def Survival_aws(truth_model, estimate, x, time_steps):
     time_steps = torch.tensor(time_steps)
     # use tqdm to show progress
     for i in range(time_steps.shape[0]):
-        surv1_estimate[:,i] = estimate.survival(time_steps[i], x).to(estimate_device)
+        surv1_estimate[:,i] = estimate.survival(time_steps[i], x.to(estimate_device))
         surv1_truth[:,i] = truth_model.survival(time_steps[i], x)
     return surv1_truth, surv1_estimate, time_steps, time_steps.max()
 

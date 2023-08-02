@@ -34,7 +34,7 @@ batch_size = 30000
 early_stop_epochs = 100
 
 def main():
-    for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
+    for theta_true in [2,4,6,8,10,12,14,16,18,20]:
         survival_l1 = []
         if theta_true==0:
             copula_form = "Independent"
