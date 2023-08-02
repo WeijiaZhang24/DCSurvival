@@ -18,7 +18,7 @@ sample_size=30000
 num_threads = 16
 
 risk="nonlinear"
-method ='RSF'
+method ='CoxPH'
 print(method)
 print(risk)
 

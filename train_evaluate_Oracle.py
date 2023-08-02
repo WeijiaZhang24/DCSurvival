@@ -10,7 +10,7 @@ from torch.utils.data import TensorDataset, DataLoader
 import torch.optim as optim
 
 from model.truth_net import Weibull_linear, Weibull_nonlinear
-from metrics.metric import surv_diff
+from metrics.metric import surv_diff, surv_diff_aws
 from synthetic_dgp import linear_dgp, nonlinear_dgp
 from sklearn.model_selection import train_test_split
 
@@ -89,7 +89,7 @@ def main(risk="linear"):
 
             # calculate survival_l1 based on ground truth survival function
             steps = np.linspace(y_test.min(), y_test.max(), 10000)
-            performance = surv_diff(truth_model, model, X_test, steps)
+            performance = surv_diff_aws(truth_model, model, X_test, steps)
             survival_l1.append(performance)
         print("theta_true = ", theta_true, "survival_l1 = ", np.nanmean(survival_l1), "+-", np.nanstd(survival_l1))
 

@@ -7,37 +7,39 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 from pycox.models import CoxTime, PCHazard
 from pycox.datasets import metabric
 
-from dgp_evaluate import Weibull_linear, Weibull_nonlinear
+from model.truth_net import Weibull_linear, Weibull_nonlinear
 from metrics.metric_pycox import surv_diff
 from synthetic_dgp import linear_dgp, nonlinear_dgp
 from sklearn.model_selection import train_test_split
 from pycox.models.cox_time import MLPVanillaCoxTime
 
-torch.set_num_threads(16)
-copula_form='Clayton'
+torch.set_num_threads(24)
 sample_size=30000
-seed = 142857
-rng = np.random.default_rng(seed)
 
 risk = 'nonlinear'
 method ='PCHazard'
-print(copula_form)
-print(method)
-print(risk)
+print(method, risk)
 
 def main():
-    for theta_true in [1,2,3,4,5,6,7,8,9,10,12,14,16,18,20]:
+    for theta_true in [0,2,4,6,8,10,12,14,16,18,20,25,30]:
         survival_l1 = []
-        for repeat in range(10):
+        if theta_true==0:
+            copula_form='Independent'
+        else:
+            copula_form='Frank'
+        print(copula_form)
+        for repeat in range(5):
+            seed = 142857
+            rng = np.random.default_rng(seed+repeat)
             if risk=="linear":
-                X, observed_time, event_indicator, _, _ = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
+                X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             elif risk == "nonlinear":
                 X, observed_time, event_indicator, _, _ = nonlinear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
 
             # split train test
-            X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33)
+            X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33, random_state=repeat)
             # split train val
-            X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33)
+            X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33, random_state=repeat)
 
             if method=='CoxTime':
                 labtrans = CoxTime.label_transform()
@@ -82,7 +84,12 @@ def main():
             surv_prediction = model.predict_surv_df(X_test)
             prediction_timepoint = surv_prediction.index
             # define truth model
-            truth_model = Weibull_linear(num_feature= X_test.shape[1], shape = 4, scale = 14, device = torch.device("cpu"))
+            if risk == "linear":
+                truth_model = Weibull_linear(num_feature= X_test.shape[1], shape = 4, scale = 14, 
+                                             device = torch.device("cpu"), coeff = beta_e)
+            elif risk == "nonlinear":
+                truth_model = Weibull_nonlinear(shape = 4, scale = 17, device = torch.device("cpu"))            
+            
             # calculate survival_l1 based on ground truth survival function
             performance = surv_diff(truth_model, surv_prediction, X_test, prediction_timepoint)
             survival_l1.append(performance)

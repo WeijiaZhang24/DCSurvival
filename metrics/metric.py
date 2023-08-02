@@ -36,6 +36,37 @@ def surv_diff(truth_model, estimate, x, steps):
     return (integ/t_m/x.shape[0]).detach().numpy() # t_max and N are the same for all patients
 
 
+def Survival_aws(truth_model, estimate, x, time_steps):
+    """
+    model: the learned survival model
+    truth: the true survival model
+    """
+    print("Survival l1 evaluation!")
+    estimate_device = device = next(estimate.parameters()).device
+    # estimate = copy.deepcopy(estimate).to(device)
+    surv1_estimate = torch.zeros((x.shape[0], time_steps.shape[0]),device=estimate_device)
+    surv1_truth = torch.zeros((x.shape[0], time_steps.shape[0]),device=torch.device("cpu"))
+    x = torch.tensor(x)
+    time_steps = torch.tensor(time_steps)
+    # use tqdm to show progress
+    for i in range(time_steps.shape[0]):
+        surv1_estimate[:,i] = estimate.survival(time_steps[i], x).to(estimate_device)
+        surv1_truth[:,i] = truth_model.survival(time_steps[i], x)
+    return surv1_truth, surv1_estimate, time_steps, time_steps.max()
+
+
+def surv_diff_aws(truth_model, estimate, x, steps):
+    device = torch.device("cpu")    
+    surv1, surv2, time_steps, t_m = Survival_aws(truth_model, estimate, x, steps)
+    # integ = torch.abs(surv1-surv2).sum()
+    integ = torch.sum( torch.diff(torch.cat([torch.zeros(1), time_steps])) * torch.abs(surv1-surv2)   )
+    #integ2 = torch.sum(torch.diff(torch.cat([torch.zeros(surv1.shape[0],1), time_steps], dim=1))*(torch.abs(surv1)), dim=1)
+    #return torch.mean(integ/integ2)
+    #print(torch.std(integ/t_m))
+    #print(integ.shape)
+    #print((integ/t_m).shape)
+    return (integ/t_m/x.shape[0]).detach().numpy() # t_max and N are the same for all patients
+
 def C_index(t, x, e, model):
     t_s,indices = torch.sort(t)
     x_s = x[indices]
