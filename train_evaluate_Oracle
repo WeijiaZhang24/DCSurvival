@@ -10,7 +10,7 @@ from torch.utils.data import TensorDataset, DataLoader
 import torch.optim as optim
 
 from model.truth_net import Weibull_linear, Weibull_nonlinear
-from metrics.metric_oracle import surv_diff
+from metrics.metric import surv_diff
 from synthetic_dgp import linear_dgp, nonlinear_dgp
 from sklearn.model_selection import train_test_split
 
