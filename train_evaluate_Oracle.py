@@ -49,7 +49,7 @@ def main(risk="linear"):
                 event_indicator_tensor_train = torch.tensor(indicator_train).to(device)
                 covariate_tensor_train = torch.tensor(X_train).to(device)
                 dataset = TensorDataset(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)     
-                batch_size = 1024  # set your batch size
+                batch_size = 4096  # set your batch size
                 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
                 model = WeibullModelClayton(X.shape[1]).to(device)

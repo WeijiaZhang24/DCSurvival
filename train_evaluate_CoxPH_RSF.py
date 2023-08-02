@@ -30,6 +30,8 @@ def main():
         for repeat in range(5): 
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)   
+            if theta_true==0:
+                copula_form = "Independent"
             if risk=="linear":
                 X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             elif risk == "nonlinear":
