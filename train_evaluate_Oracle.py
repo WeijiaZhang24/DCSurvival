@@ -89,7 +89,11 @@ def main(risk="linear"):
 
             # calculate survival_l1 based on ground truth survival function
             steps = np.linspace(y_test.min(), y_test.max(), 10000)
-            performance = surv_diff_aws(truth_model, model, X_test, steps)
+            
+            test_dataset = TensorDataset(X_test)
+            test_loader = DataLoader(test_dataset, batch_size=1024)
+            performance = surv_diff_aws(truth_model, model, X_test, test_loader, steps)
+            
             survival_l1.append(performance)
         print("theta_true = ", theta_true, "survival_l1 = ", np.nanmean(survival_l1), "+-", np.nanstd(survival_l1))
 
