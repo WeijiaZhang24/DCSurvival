@@ -27,7 +27,7 @@ print(risk)
 def main():
     for theta_true in [1,2,3,4,5,6,7,8,9,10,12,14,16,18,20]:
         survival_l1 = []
-        for repeat in range(5):
+        for repeat in range(5): 
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)   
             if risk=="linear":
