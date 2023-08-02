@@ -85,7 +85,6 @@ def main(risk="linear"):
                         if epoch > 1000: 
                             optimizer_theta.step()                       
                     # Evaluate validation loss
-                        model.eval()
                     val_loss = 0
                     with torch.no_grad():
                         for covariates, times, events in val_loader:
@@ -120,4 +119,4 @@ def main(risk="linear"):
         print("theta_true = ", theta_true, "survival_l1 = ", np.nanmean(survival_l1), "+-", np.nanstd(survival_l1))
 
 if __name__ == "__main__":
-    main(risk="nonlinear")
+    main()

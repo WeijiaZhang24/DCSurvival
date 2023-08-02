@@ -44,16 +44,20 @@ def main(risk="linear"):
             X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33, 
                                                                                                  stratify= event_indicator, random_state=repeat)
             # split train val
-            # X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33)
+            X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33)
 
+            patience = 20  # Or whatever value you choose: how many epochs to wait for improvement in validation loss before stopping
+            best_val_loss = float('inf')  # Initialize best validation loss as infinity
+            counter = 0  # Initialize counter
             if method=='uai2023':
                 times_tensor_train = torch.tensor(y_train).to(device)
                 event_indicator_tensor_train = torch.tensor(indicator_train).to(device)
                 covariate_tensor_train = torch.tensor(X_train).to(device)
                 dataset = TensorDataset(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)     
+                val_dataset = TensorDataset(torch.tensor(X_val).to(device), torch.tensor(y_val).to(device), torch.tensor(indicator_val).to(device))
                 batch_size = 8192  # set your batch size
                 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
+                val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
                 model = WeibullModelClayton(X.shape[1]).to(device)
                 optimizer_event = optim.Adam([{"params": [model.scale_t], "lr": 0.01},
                                             {"params": [model.shape_t], "lr": 0.01},
@@ -79,8 +83,24 @@ def main(risk="linear"):
                         optimizer_event.step()
                         if epoch > 1000: 
                             optimizer_theta.step()                       
-                        if -log_likelihood.item() < likelihood_threshold:
-                            break
+                        # Evaluate validation loss
+                        val_loss = 0
+                        with torch.no_grad():
+                            for covariates, times, events in val_loader:
+                                log_likelihood, _, _, _, _ = model.log_likelihood(covariates, times, events)
+                                val_loss += -log_likelihood.item()
+                                # print("val_loss = ", val_loss)
+                        val_loss /= len(val_loader)
+
+                        # If the validation loss has decreased, save the model and reset the counter
+                        if val_loss < best_val_loss:
+                            best_val_loss = val_loss
+                            torch.save(model.state_dict(), 'best_model.pt')  # Or any other filename or path
+                            counter = 0
+                        else:  # If the validation loss did not decrease, increment the counter
+                            counter += 1
+                            if counter >= patience:  # If counter reaches patience, stop training
+                                break
 
             if risk == "linear":
                 truth_model = Weibull_linear(num_feature= X_test.shape[1], shape = 4, scale = 14, device = torch.device("cpu"), coeff = beta_e)
