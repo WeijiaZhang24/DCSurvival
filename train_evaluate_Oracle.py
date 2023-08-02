@@ -66,7 +66,7 @@ def main(risk="linear"):
                 optimizer_theta = optim.Adam([{"params": [model.theta], "lr": 0.01}])  
                 num_epochs = 10000
                 # Train the model
-                for epoch in range(num_epochs):
+                for epoch in tqdm(range(num_epochs)):
                     for covariates, times, events in dataloader:  # iterate over batches
                         optimizer_theta.zero_grad()
                         optimizer_event.zero_grad()

@@ -17,22 +17,23 @@ from sklearn.model_selection import train_test_split
 sample_size=30000
 num_threads = 32
 
-risk="linear"
+risk="nonlinear"
 method ='RSF'
 print(method)
 print(risk)
 
 def main():
-    for theta_true in [0]:
+    for theta_true in [18,20]:
         survival_l1 = []
+        if theta_true==0:
+            copula_form = "Independent"
+        else:
+            copula_form = "Clayton"
+        print(copula_form)
         for repeat in range(5): 
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)   
-            if theta_true==0:
-                copula_form = "Independent"
-            else:
-                copula_form = "Clayton"
-                print(copula_form)
+
             if risk=="linear":
                 X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             elif risk == "nonlinear":

@@ -21,10 +21,9 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-copula_form='Clayton'
 method ='ours'
 risk = 'linear'
-print(copula_form, method, risk)
+print(method, risk)
 
 depth = 2
 widths = [100, 100]
@@ -35,8 +34,13 @@ batch_size = 30000
 early_stop_epochs = 50
 
 def main():
-    for theta_true in [1,2,3,4,5,6,7,8,9,10,12,14,16,18,20]:
+    for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
         survival_l1 = []
+        if theta_true==0:
+            copula_form = "Independent"
+        else:
+            copula_form = "Clayton"
+        print(copula_form)
         for repeat in range(10):
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)   
@@ -47,9 +51,9 @@ def main():
                 X, observed_time, event_indicator, _, _ = nonlinear_dgp(copula_name=copula_form, 
                                                                          theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)                                              
             # split train test
-            X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33, stratify= event_indicator)
+            X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33, stratify= event_indicator, random_state=repeat)
             # split train val
-            X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33, stratify= indicator_train)
+            X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33, stratify= indicator_train, random_state=repeat)
 
             if risk == "linear":
                 truth_model = Weibull_linear(num_feature= X_test.shape[1], shape = 4, scale = 14, device = torch.device("cpu"), coeff = beta_e)
