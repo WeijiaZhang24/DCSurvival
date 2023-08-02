@@ -47,7 +47,7 @@ def main(risk="linear"):
             X_train, X_val, y_train, y_val, indicator_train, indicator_val = train_test_split(X_train, y_train, indicator_train, test_size=0.33, random_state=repeat)
 
             patience = 20  # Or whatever value you choose: how many epochs to wait for improvement in validation loss before stopping
-            best_val_loss = float('-inf')  # Initialize best validation loss as infinity
+            best_val_loss = float('inf')  # Initialize best validation loss as infinity
             counter = 0  # Initialize counter
             if method=='uai2023':
                 times_tensor_train = torch.tensor(y_train).to(device)
@@ -91,7 +91,7 @@ def main(risk="linear"):
                         for covariates, times, events in val_loader:
                             log_likelihood, _, _, _, _ = model.log_likelihood(covariates, times, events)
                             val_loss += -log_likelihood.item()
-                            print("val_loss = ", val_loss)
+                            # print("val_loss = ", val_loss)
                     val_loss /= len(val_loader)
 
                     # If the validation loss has decreased, save the model and reset the counter
