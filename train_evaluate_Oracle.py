@@ -49,7 +49,9 @@ def main(risk="linear"):
                 event_indicator_tensor_train = torch.tensor(indicator_train).to(device)
                 covariate_tensor_train = torch.tensor(X_train).to(device)
                 dataset = TensorDataset(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)     
-                
+                batch_size = 1024  # set your batch size
+                dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
                 model = WeibullModelClayton(X.shape[1]).to(device)
                 optimizer_event = optim.Adam([{"params": [model.scale_t], "lr": 0.01},
                                             {"params": [model.shape_t], "lr": 0.01},
@@ -63,19 +65,20 @@ def main(risk="linear"):
                 num_epochs = 10000
                 # Train the model
                 for epoch in range(num_epochs):
-                    optimizer_theta.zero_grad()
-                    optimizer_event.zero_grad()
-                    optimizer_censoring.zero_grad()
-                    log_likelihood, event_log_density, event_partial_copula, censoring_log_density, censoring_partial_copula = \
-                          model.log_likelihood(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)
-                    (-log_likelihood).backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
-                    optimizer_censoring.step()
-                    optimizer_event.step()
-                    if epoch > 1000: 
-                        optimizer_theta.step()                       
-                    if -log_likelihood.item() < likelihood_threshold:
-                        break
+                    for covariates, times, events in dataloader:  # iterate over batches
+                        optimizer_theta.zero_grad()
+                        optimizer_event.zero_grad()
+                        optimizer_censoring.zero_grad()
+                        log_likelihood, event_log_density, event_partial_copula, censoring_log_density, censoring_partial_copula = \
+                            model.log_likelihood(covariates, times, events)
+                        (-log_likelihood).backward()
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
+                        optimizer_censoring.step()
+                        optimizer_event.step()
+                        if epoch > 1000: 
+                            optimizer_theta.step()                       
+                        if -log_likelihood.item() < likelihood_threshold:
+                            break
 
             if risk == "linear":
                 truth_model = Weibull_linear(num_feature= X_test.shape[1], shape = 4, scale = 14, device = torch.device("cpu"), coeff = beta_e)
