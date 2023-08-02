@@ -6,6 +6,8 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 from torch.autograd import Function
 
+from sumo import SuMo
+
 
 class PhiInv(nn.Module):
     def __init__(self, phi):
@@ -380,9 +382,9 @@ class SurvivalCopula(nn.Module):
             return numerator/denominator
 
 
-class SurvivalCopula_nonlinear(nn.Module):
+class SurvivalCopula_sumo(nn.Module):
     def __init__(self, phi, device, num_features, tol,  hidden_size=32, max_iter = 2000):
-        super(SurvivalCopula_nonlinear, self).__init__()
+        super(SurvivalCopula_sumo, self).__init__()
         self.tol = tol
         self.phi = phi
         self.phi_inv = PhiInv(phi).to(device)
@@ -395,32 +397,23 @@ class SurvivalCopula_nonlinear(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_size, 1),
         )
-        self.net_c = nn.Sequential(
-            nn.Linear(num_features, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size,hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, 1),
-        )
         self.shape_t = nn.Parameter(torch.tensor(1.0)) # Event Weibull Shape
         self.scale_t = nn.Parameter(torch.tensor(1.0)) # Event Weibull Scale
-        self.shape_c = nn.Parameter(torch.tensor(1.0)) # Censoring Weibull Shape   
-        self.scale_c = nn.Parameter(torch.tensor(1.0)) # Censoring Weibull Scale
-
+        self.sumo_c = SuMo(num_features, layers = [100, 100, 100], layers_surv = [100,100,100], dropout = 0.)
 
     def forward(self, x, t, c, max_iter = 2000):
         # the Covariates for Event and Censoring Model
         x_beta_t = self.net_t(x).squeeze()
-        x_beta_c = self.net_c(x).squeeze()
 
         # In event density, censoring entries should be 0
         event_log_density = c * log_density(t, self.shape_t, self.scale_t, x_beta_t) 
-        censoring_log_density = (1-c) * log_density(t, self.shape_c, self.scale_c, x_beta_c)
+        # censoring_log_density = (1-c) * log_density(t, self.shape_c, self.scale_c, x_beta_c)
 
         S_E = survival(t, self.shape_t, self.scale_t, x_beta_t)
-        S_C = survival(t, self.shape_c, self.scale_c, x_beta_c)
+        # S_C = survival(t, self.shape_c, self.scale_c, x_beta_c)
+        S_C, density_C = self.sumo_c(x, t, gradient = True)
+        S_C = S_C.squeeze()
+        censoring_log_density = torch.log(density_C).squeeze()
         # Check if Survival Function of Event and Censoring are in [0,1]
         assert (S_E >= 0.).all() and (
             S_E <= 1.+1e-10).all(), "t %s, output %s" % (t, S_E, )
@@ -430,6 +423,88 @@ class SurvivalCopula_nonlinear(nn.Module):
         # Partial derivative of Copula using ACNet
         y = torch.stack([S_E, S_C], dim=1)
         ndims = y.size()[1]
+        inverses = self.phi_inv(y, max_iter = max_iter)
+        cdf = self.phi(inverses.sum(dim=1))
+        # TODO: Only take gradients with respect to one dimension of y at at time
+        cur1 = torch.autograd.grad(
+            cdf.sum(), y, create_graph=True)[0][:, 0]
+        cur2 = torch.autograd.grad(
+            cdf.sum(), y, create_graph=True)[0][:, 1]        
+        
+        logL = event_log_density + c * torch.log(cur1) + censoring_log_density + (1-c) * torch.log(cur2)
+    
+        return torch.sum(logL)
+
+
+    def cond_cdf(self, y, mode='cond_cdf', others=None, tol=1e-8):
+        if not y.requires_grad:
+            y = y.requires_grad_(True)
+        ndims = y.size()[1]
+        inverses = self.phi_inv(y, tol=self.tol)
+        cdf = self.phi(inverses.sum(dim=1))
+        
+        if mode == 'cdf':
+            return cdf
+        if mode == 'pdf':
+            cur = cdf
+            for dim in range(ndims):
+                # TODO: Only take gradients with respect to one dimension of y at at time
+                cur = torch.autograd.grad(
+                    cur.sum(), y, create_graph=True)[0][:, dim]
+            return cur        
+        elif mode =='cond_cdf':
+            target_dims = others['cond_dims']
+            
+            # Numerator
+            cur = cdf
+            for dim in target_dims:
+                # TODO: Only take gradients with respect to one dimension of y at a time
+                cur = torch.autograd.grad(
+                    cur.sum(), y, create_graph=True, retain_graph=True)[0][:, dim]
+            numerator = cur
+
+            # Denominator
+            trunc_cdf = self.phi(inverses[:, target_dims])
+            cur = trunc_cdf
+            for dim in range(len(target_dims)):
+                cur = torch.autograd.grad(
+                    cur.sum(), y, create_graph=True)[0][:, dim]
+
+            denominator = cur
+            return numerator/denominator
+        
+
+    def predict(self, X, t):
+        result = self.sumo_t.predict_survival(X, t)
+        return result
+
+
+class SurvivalCopula_sumofull(nn.Module):
+    def __init__(self, phi, device, num_features, tol,  hidden_size=32, max_iter = 2000):
+        super(SurvivalCopula_sumofull, self).__init__()
+        self.tol = tol
+        self.phi = phi
+        self.phi_inv = PhiInv(phi).to(device)
+        self.sumo_e = SuMo(num_features, layers = [32, 32, 32], layers_surv = [32,32,32], dropout = 0.)
+        self.sumo_c = SuMo(num_features, layers = [32, 32, 32], layers_surv = [32,32,32], dropout = 0.)
+
+    def forward(self, x, t, c, max_iter = 2000):
+        S_E, density_E = self.sumo_e(x, t, gradient = True)
+        S_E = S_E.squeeze()
+        event_log_density = torch.log(density_E).squeeze()
+
+        # S_C = survival(t, self.shape_c, self.scale_c, x_beta_c)
+        S_C, density_C = self.sumo_c(x, t, gradient = True)
+        S_C = S_C.squeeze()
+        censoring_log_density = torch.log(density_C).squeeze()
+        # Check if Survival Function of Event and Censoring are in [0,1]
+        assert (S_E >= 0.).all() and (
+            S_E <= 1.+1e-10).all(), "t %s, output %s" % (t, S_E, )
+        assert (S_C >= 0.).all() and (
+            S_C <= 1.+1e-10).all(), "t %s, output %s" % (t, S_C, )      
+          
+        # Partial derivative of Copula using ACNet
+        y = torch.stack([S_E, S_C], dim=1)
         inverses = self.phi_inv(y, max_iter = max_iter)
         cdf = self.phi(inverses.sum(dim=1))
         # TODO: Only take gradients with respect to one dimension of y at at time
@@ -480,6 +555,11 @@ class SurvivalCopula_nonlinear(nn.Module):
             denominator = cur
             return numerator/denominator
 
+    def survival(self, t, X):
+        with torch.no_grad():
+            result = self.sumo_e.survival(X, t)
+        return result
+
 
 def sample(net, ndims, N, device, seed=142857):
     """
@@ -517,6 +597,7 @@ def sample(net, ndims, N, device, seed=142857):
     torch.random.set_rng_state(old_rng_state)
 
     return U
+
 
 ####################################################################################
 # Tests

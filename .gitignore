@@ -5,3 +5,5 @@ __pycache__/
 *.png
 wandb/
 .ipynb_checkpoints
+checkpoints/
+*.pt
