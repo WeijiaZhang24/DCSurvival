@@ -15,8 +15,6 @@ from pycox.models.cox_time import MLPVanillaCoxTime
 
 torch.set_num_threads(16)
 sample_size=30000
-seed = 142857
-rng = np.random.default_rng(seed)
 
 method ='DeepHit'
 copula_form='Clayton'
@@ -29,6 +27,8 @@ def main():
     for theta_true in [2,3,4,5,6,7,8,9,10,12,14,16,18,20]:
         survival_l1 = []
         for repeat in tqdm(range(10)):
+            seed = 142857 + repeat
+            rng = np.random.default_rng(seed)   
             if risk=='linear':
                 X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             elif risk=='nonlinear':
