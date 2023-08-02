@@ -59,6 +59,7 @@ def Survival_aws(truth_model, estimate, x, time_steps):
 def surv_diff_aws(truth_model, estimate, x, steps):
     device = torch.device("cpu")    
     surv1, surv2, time_steps, t_m = Survival_aws(truth_model, estimate, x, steps)
+    surv2 = surv2.to(device)
     # integ = torch.abs(surv1-surv2).sum()
     integ = torch.sum( torch.diff(torch.cat([torch.zeros(1), time_steps])) * torch.abs(surv1-surv2)   )
     #integ2 = torch.sum(torch.diff(torch.cat([torch.zeros(surv1.shape[0],1), time_steps], dim=1))*(torch.abs(surv1)), dim=1)
