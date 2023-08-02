@@ -17,18 +17,17 @@ torch.set_num_threads(16)
 sample_size=30000
 
 method ='DeepHit'
-copula_form='Clayton'
-risk = 'linear'
+risk = 'nonlinear'
 print(method)
 print(risk)
 
 def main():
-    for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
+    for theta_true in [0,2,4,6,8,10,12,14,16,18,20,25,30]:
         survival_l1 = []
         if theta_true==0:
             copula_form='Independent'
         else:
-            copula_form='Clayton'
+            copula_form='Frank'
         print(copula_form)
         for repeat in range(5):
             seed = 142857 + repeat

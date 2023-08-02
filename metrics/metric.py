@@ -9,6 +9,7 @@ def Survival(truth_model, estimate, x, time_steps):
     model: the learned survival model
     truth: the true survival model
     """
+    print("Survival l1 evaluation!")
     device = torch.device("cpu")
     estimate = copy.deepcopy(estimate).to(device)
     surv1_estimate = torch.zeros((x.shape[0], time_steps.shape[0]),device=device)

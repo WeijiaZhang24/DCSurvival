@@ -29,9 +29,9 @@ depth = 2
 widths = [100, 100]
 lc_w_range = (0, 1.0)
 shift_w_range = (0., 2.0)
-num_epochs = 2000
+num_epochs = 5000
 batch_size = 30000
-early_stop_epochs = 50
+early_stop_epochs = 100
 
 def main():
     for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
@@ -41,7 +41,7 @@ def main():
         else:
             copula_form = "Clayton"
         print(copula_form)
-        for repeat in range(10):
+        for repeat in range(5):
             seed = 142857 + repeat
             rng = np.random.default_rng(seed)   
             if risk == 'linear':
@@ -68,8 +68,8 @@ def main():
             event_indicator_tensor_val = torch.tensor(indicator_val).to(device)
             covariate_tensor_val = torch.tensor(X_val).to(device)
 
-            phi = DiracPhi(depth, widths, lc_w_range, shift_w_range, device, tol = 1e-12).to(device)
-            model = SurvivalCopula_sumofull(phi, device = device, num_features=10, tol=1e-12).to(device)
+            phi = DiracPhi(depth, widths, lc_w_range, shift_w_range, device, tol = 1e-14).to(device)
+            model = SurvivalCopula_sumofull(phi, device = device, num_features=10, tol=1e-14).to(device)
             # optimizer = optim.Adam(model.parameters(), lr = 0.001)
             optimizer = optim.Adam([{"params": model.sumo_e.parameters(), "lr": 1e-3},
                                     {"params": model.sumo_c.parameters(), "lr": 1e-3},
@@ -78,8 +78,8 @@ def main():
             # Train the model
             best_val_loglikelihood = float('-inf')
             epochs_no_improve = 0
-            # for epoch in tqdm(range(num_epochs)):
-            for epoch in range(num_epochs):
+            for epoch in tqdm(range(num_epochs)):
+            # for epoch in range(num_epochs):
                 optimizer.zero_grad()
                 logloss = model(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train, max_iter = 10000)
                 (-logloss).backward() 
@@ -87,8 +87,11 @@ def main():
 
                 if epoch % 10 == 0:
                     val_loglikelihood = model(covariate_tensor_val, times_tensor_val, event_indicator_tensor_val, max_iter = 1000)
+                    # steps = np.linspace(y_test.min(), y_test.max(), 1000)
+                    # performance = surv_diff(truth_model, model, X_test, steps)
+                    # print(epoch, performance)
                     # print(val_loglikelihood)
-                    if val_loglikelihood > (best_val_loglikelihood + 2 ):
+                    if val_loglikelihood > (best_val_loglikelihood + 1):
                         best_val_loglikelihood = val_loglikelihood
                         epochs_no_improve = 0
                         torch.save({'epoch': epoch, 'model_state_dict': model.state_dict(),'loss': best_val_loglikelihood,

@@ -35,7 +35,7 @@ def main(risk="linear"):
                 copula_form = "Independent"
             else:
                 copula_form = "Clayton"
-                print(copula_form)
+            print(copula_form)
             if risk == 'linear':
                 X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             elif risk == 'nonlinear':

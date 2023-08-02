@@ -15,7 +15,7 @@ from synthetic_dgp import linear_dgp,nonlinear_dgp
 from sklearn.model_selection import train_test_split
 
 sample_size=30000
-num_threads = 32
+num_threads = 16
 
 risk="nonlinear"
 method ='RSF'
@@ -23,12 +23,12 @@ print(method)
 print(risk)
 
 def main():
-    for theta_true in [18,20]:
+    for theta_true in [0,2,4,6,8,10,12,14,16,18,20,25,30]:
         survival_l1 = []
         if theta_true==0:
             copula_form = "Independent"
         else:
-            copula_form = "Clayton"
+            copula_form = "Frank"
         print(copula_form)
         for repeat in range(5): 
             seed = 142857 + repeat
@@ -48,7 +48,7 @@ def main():
             y_train_tuple =  c = np.array(list(zip(bool_indicator_train, y_train)), dtype=[('a', bool), ('b', float)])
 
             if method=='RSF':
-                rsf = RandomSurvivalForest(n_estimators=100, min_samples_split=10, 
+                rsf = RandomSurvivalForest(n_estimators=50, min_samples_split=10, 
                                            min_samples_leaf=15, n_jobs=num_threads)
                 rsf.fit(X_train, y_train_tuple)
                 surv_prediction = rsf.predict_survival_function(X_test, return_array=True)
