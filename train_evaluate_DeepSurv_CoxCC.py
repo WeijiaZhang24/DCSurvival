@@ -16,7 +16,7 @@ torch.set_num_threads(32)
 sample_size=30000
 
 method ='CoxCC'
-risk = 'linear'
+risk = 'nonlinear'
 print(method, risk)
 def main():
     for theta_true in [2,4,6,8,10,12,14,16,18,20,25,30]:

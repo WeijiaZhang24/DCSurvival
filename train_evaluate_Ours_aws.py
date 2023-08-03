@@ -22,7 +22,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 method ='ours'
-risk = 'linear'
+risk = 'nonlinear'
 print(method, risk)
 
 depth = 2
@@ -34,7 +34,7 @@ batch_size = 30000
 early_stop_epochs = 100
 
 def main():
-    for theta_true in [2,4,6,8,10,12,14,16,18,20]:
+    for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
         survival_l1 = []
         if theta_true==0:
             copula_form = "Independent"
@@ -96,8 +96,8 @@ def main():
 
                     val_loss = 0
                     with torch.no_grad():
-                        for covariates, times, events in val_loader:
-                            log_likelihood, _, _, _, _ = model.log_likelihood(covariates, times, events)
+                        for covariates_val, times_val, events_val in val_loader:
+                            log_likelihood = model(covariates_val, times_val, events_val, max_iter = 10000)
                             val_loss += log_likelihood.item()
                             # print("val_loss = ", val_loss)
                     val_loss /= len(val_loader)
