@@ -75,7 +75,7 @@ def main():
             val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
             phi = DiracPhi(depth, widths, lc_w_range, shift_w_range, device, tol = 1e-14).to(device)
-            model = SurvivalCopula_sumofull(phi, device = device, num_features=10, tol=1e-14).to(device)
+            model = SurvivalCopula_sumofull(phi, device = device, num_features=X_test.shape[1], tol=1e-14).to(device)
             # optimizer = optim.Adam(model.parameters(), lr = 0.001)
             optimizer = optim.Adam([{"params": model.sumo_e.parameters(), "lr": 1e-3},
                                     {"params": model.sumo_c.parameters(), "lr": 1e-3},
