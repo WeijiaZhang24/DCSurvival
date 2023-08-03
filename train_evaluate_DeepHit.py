@@ -13,7 +13,7 @@ from synthetic_dgp import linear_dgp, nonlinear_dgp
 from sklearn.model_selection import train_test_split
 from pycox.models.cox_time import MLPVanillaCoxTime
 
-torch.set_num_threads(16)
+torch.set_num_threads(24)
 sample_size=30000
 
 method ='DeepHit'
@@ -22,7 +22,7 @@ print(method)
 print(risk)
 
 def main():
-    for theta_true in [2,4,6,8,10,12,14,16,18,20,25,30]:
+    for theta_true in [8,10,12,14,16,18,20,25,30]:
         survival_l1 = []
         if theta_true==0:
             copula_form='Independent'

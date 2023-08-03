@@ -30,8 +30,9 @@ widths = [100, 100]
 lc_w_range = (0, 1.0)
 shift_w_range = (0., 2.0)
 num_epochs = 5000
-batch_size = 30000
 early_stop_epochs = 100
+batch_size = 4096*2  # set your batch size
+
 
 def main():
     for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
@@ -70,7 +71,6 @@ def main():
             
             dataset = TensorDataset(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)     
             val_dataset = TensorDataset(torch.tensor(X_val).to(device), torch.tensor(y_val).to(device), torch.tensor(indicator_val).to(device))
-            batch_size = 4096  # set your batch size
             dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
             val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
