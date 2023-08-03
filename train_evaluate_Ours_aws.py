@@ -22,7 +22,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 method ='ours'
-risk = 'nonlinear'
+risk = 'linear'
 print(method, risk)
 
 depth = 2
@@ -40,7 +40,7 @@ def main():
         if theta_true==0:
             copula_form = "Independent"
         else:
-            copula_form = "Clayton"
+            copula_form = "Frank"
         print(copula_form)
         for repeat in range(5):
             seed = 142857 + repeat
