@@ -11,7 +11,7 @@ from torch.utils.data import TensorDataset, DataLoader
 import torch.optim as optim
 
 from model.truth_net import Weibull_linear, Weibull_nonlinear
-from metrics.metric import surv_diff
+from metrics.metric import surv_diff, surv_diff_aws
 from synthetic_dgp import linear_dgp, nonlinear_dgp
 from sklearn.model_selection import train_test_split
 
@@ -67,6 +67,12 @@ def main():
             times_tensor_val = torch.tensor(y_val).to(device)
             event_indicator_tensor_val = torch.tensor(indicator_val).to(device)
             covariate_tensor_val = torch.tensor(X_val).to(device)
+            
+            dataset = TensorDataset(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)     
+            val_dataset = TensorDataset(torch.tensor(X_val).to(device), torch.tensor(y_val).to(device), torch.tensor(indicator_val).to(device))
+            batch_size = 8192  # set your batch size
+            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
             phi = DiracPhi(depth, widths, lc_w_range, shift_w_range, device, tol = 1e-14).to(device)
             model = SurvivalCopula_sumofull(phi, device = device, num_features=10, tol=1e-14).to(device)
@@ -79,38 +85,43 @@ def main():
             best_val_loglikelihood = float('-inf')
             epochs_no_improve = 0
             for epoch in tqdm(range(num_epochs)):
-            # for epoch in range(num_epochs):
-                optimizer.zero_grad()
-                logloss = model(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train, max_iter = 10000)
-                (-logloss).backward() 
-                optimizer.step()
+                for covariates, times, events in dataloader:  # iterate over batches 
+                    optimizer.zero_grad()
+                    logloss = model(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train, max_iter = 10000)
+                    (-logloss).backward() 
+                    optimizer.step()
 
                 if epoch % 10 == 0:
                     val_loglikelihood = model(covariate_tensor_val, times_tensor_val, event_indicator_tensor_val, max_iter = 1000)
-                    # steps = np.linspace(y_test.min(), y_test.max(), 1000)
-                    # performance = surv_diff(truth_model, model, X_test, steps)
-                    # print(epoch, performance)
-                    # print(val_loglikelihood)
+
+                    val_loss = 0
+                    with torch.no_grad():
+                        for covariates, times, events in val_loader:
+                            log_likelihood, _, _, _, _ = model.log_likelihood(covariates, times, events)
+                            val_loss += log_likelihood.item()
+                            # print("val_loss = ", val_loss)
+                    val_loss /= len(val_loader)
+
                     if val_loglikelihood > (best_val_loglikelihood + 1):
                         best_val_loglikelihood = val_loglikelihood
                         epochs_no_improve = 0
                         torch.save({'epoch': epoch, 'model_state_dict': model.state_dict(),'loss': best_val_loglikelihood,
-                                    }, '/home/weijia/code/SurvivalACNet_sumo/checkpoints/ours_linear_'+copula_form + '_' +str(theta_true)+'.pth')
+                                    }, './ours_'+risk+'_'+copula_form + '_' +str(theta_true)+'.pth')
                     else:
                         if val_loglikelihood > best_val_loglikelihood:
                             best_val_loglikelihood = val_loglikelihood
                         epochs_no_improve = epochs_no_improve + 10
-                        # print(epochs_no_improve)
+                        print(epochs_no_improve)
                 # Early stopping condition
                 if epochs_no_improve == early_stop_epochs:
                     # print('Early stopping triggered at epoch: %s' % epoch)
                     break
             # load the best model
-            checkpoint = torch.load('/home/weijia/code/SurvivalACNet_sumo/checkpoints/ours_linear_'+copula_form + '_' +str(theta_true)+'.pth')
+            checkpoint = torch.load('./ours_' + risk + '_' + copula_form + '_' +str(theta_true)+'.pth')
             model.load_state_dict(checkpoint['model_state_dict'])
             # calculate survival_l1 based on ground truth survival function
             steps = np.linspace(y_test.min(), y_test.max(), 1000)
-            performance = surv_diff(truth_model, model, X_test, steps)
+            performance = surv_diff_aws(truth_model, model, X_test, steps)
             survival_l1.append(performance)
             print(epoch, performance)
         print("theta_true = ", theta_true, "survival_l1 = ", np.mean(survival_l1), "+-", np.std(survival_l1))

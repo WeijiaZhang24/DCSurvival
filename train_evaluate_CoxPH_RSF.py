@@ -15,10 +15,10 @@ from synthetic_dgp import linear_dgp,nonlinear_dgp
 from sklearn.model_selection import train_test_split
 
 sample_size=30000
-num_threads = 16
+num_threads = 24
 
-risk="nonlinear"
-method ='CoxPH'
+risk="non linear"
+method ='RSF'
 print(method)
 print(risk)
 
@@ -28,7 +28,7 @@ def main():
         if theta_true==0:
             copula_form = "Independent"
         else:
-            copula_form = "Frank"
+            copula_form = "Gumbel"
         print(copula_form)
         for repeat in range(5): 
             seed = 142857 + repeat
