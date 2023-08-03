@@ -70,7 +70,7 @@ def main():
             
             dataset = TensorDataset(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train)     
             val_dataset = TensorDataset(torch.tensor(X_val).to(device), torch.tensor(y_val).to(device), torch.tensor(indicator_val).to(device))
-            batch_size = 8192  # set your batch size
+            batch_size = 4096  # set your batch size
             dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
             val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
