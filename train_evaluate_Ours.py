@@ -22,7 +22,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 method ='ours'
-risk = 'linear'
+risk = 'nonlinear'
 print(method, risk)
 
 depth = 2
@@ -34,7 +34,7 @@ batch_size = 30000
 early_stop_epochs = 100
 
 def main():
-    for theta_true in [2,4,6,8,10,12,14,16,18,20]:
+    for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
         survival_l1 = []
         if theta_true==0:
             copula_form = "Independent"
@@ -69,7 +69,7 @@ def main():
             covariate_tensor_val = torch.tensor(X_val).to(device)
 
             phi = DiracPhi(depth, widths, lc_w_range, shift_w_range, device, tol = 1e-14).to(device)
-            model = SurvivalCopula_sumofull(phi, device = device, num_features=10, tol=1e-14).to(device)
+            model = SurvivalCopula_sumofull(phi, device = device, num_features=X.shape[1], tol=1e-14).to(device)
             # optimizer = optim.Adam(model.parameters(), lr = 0.001)
             optimizer = optim.Adam([{"params": model.sumo_e.parameters(), "lr": 1e-3},
                                     {"params": model.sumo_c.parameters(), "lr": 1e-3},

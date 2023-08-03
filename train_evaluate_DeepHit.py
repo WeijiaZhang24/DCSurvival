@@ -17,7 +17,7 @@ torch.set_num_threads(24)
 sample_size=30000
 
 method ='DeepHit'
-risk = 'linear'
+risk = 'nonlinear'
 print(method)
 print(risk)
 
