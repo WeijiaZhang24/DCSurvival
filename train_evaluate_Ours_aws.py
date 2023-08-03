@@ -87,7 +87,7 @@ def main():
             for epoch in tqdm(range(num_epochs)):
                 for covariates, times, events in dataloader:  # iterate over batches 
                     optimizer.zero_grad()
-                    logloss = model(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train, max_iter = 10000)
+                    logloss = model(covariates, times, events, max_iter = 10000)
                     (-logloss).backward() 
                     optimizer.step()
 
@@ -95,11 +95,10 @@ def main():
                     val_loglikelihood = model(covariate_tensor_val, times_tensor_val, event_indicator_tensor_val, max_iter = 1000)
 
                     val_loss = 0
-                    with torch.no_grad():
-                        for covariates_val, times_val, events_val in val_loader:
-                            log_likelihood = model(covariates_val, times_val, events_val, max_iter = 10000)
-                            val_loss += log_likelihood.item()
-                            # print("val_loss = ", val_loss)
+                    for covariates_val, times_val, events_val in val_loader:
+                        log_likelihood = model(covariates_val, times_val, events_val, max_iter = 10000)
+                        val_loss += log_likelihood.item()
+                        # print("val_loss = ", val_loss)
                     val_loss /= len(val_loader)
 
                     if val_loglikelihood > (best_val_loglikelihood + 1):
