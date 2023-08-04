@@ -38,11 +38,11 @@ def log_clayton_partial_u(u, v, theta):
 # if u or v is too small, then u.pow(-theta) wil be inf
 
 def log_gumbel_copula(u, v, theta):
-    result = -((-LOG(u)).pow(theta) + (-LOG(v)).pow(theta)).pow(DIV(1,theta))
+    result = -torch.pow((torch.pow((-LOG(u)),theta) + torch.pow((-LOG(v)),theta)),  DIV(1,theta))
     return result
 
 def log_gumbel_partial_u(u, v, theta):
-    result = log_gumbel_copula(u,v,theta)+  (DIV(1,theta)-1) (-LOG(u)).pow(theta) + (-LOG(v)).pow(theta) -  LOG(theta) -(1-theta)*(-LOG(u))
+    result = log_gumbel_copula(u,v,theta)+  (DIV(1,theta)-1) * ( torch.pow((-LOG(u)),theta) + torch.pow((-LOG(v)),theta) ) -  LOG(theta) -(1-theta)*(-LOG(u))
     return result
 
 def log_frank_partial_u(u, v, theta):
