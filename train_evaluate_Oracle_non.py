@@ -5,7 +5,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 from tqdm import tqdm
 
-from model.oracle_net import WeibullModelClayton, WeibullModel_indep
+from model.oracle_net import WeibullModelCopula, WeibullModel_indep
 from torch.utils.data import TensorDataset, DataLoader
 import torch.optim as optim
 
@@ -58,7 +58,7 @@ def main(risk="linear"):
                 batch_size = 8192  # set your batch size
                 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
                 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-                model = WeibullModelClayton(X.shape[1]).to(device)
+                model = WeibullModelCopula(X.shape[1]).to(device, copula=copula_form)
                 optimizer_event = optim.Adam([{"params": [model.scale_t], "lr": 0.01},
                                             {"params": [model.shape_t], "lr": 0.01},
                                             {"params": model.net_t.parameters(), "lr": 0.01},
