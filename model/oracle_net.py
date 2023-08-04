@@ -28,18 +28,21 @@ class WeibullModel_indep(nn.Module):
 def LOG(x):
     return torch.log(x+1e-20*(x<1e-20))
 
+def DIV(x,y):
+    return x/(y+(y<=1e-30)*1e-30)
+
 # According to UAI2023 paper
 def log_clayton_partial_u(u, v, theta):
     result = torch.where ( (u.pow(-theta) + v.pow(-theta)) > 1, (-theta-1)*torch.log(u)  + (-(theta+1)/(theta))*torch.log(u.pow(-theta) + v.pow(-theta) - 1), 0)
     return result
 # if u or v is too small, then u.pow(-theta) wil be inf
 
-def gumbel_copula(u, v, theta):
-    result = torch.exp(-((-LOG(u)).pow(theta) + (-LOG(v)).pow(theta)).pow(1/theta))
+def log_gumbel_copula(u, v, theta):
+    result = -((-LOG(u)).pow(theta) + (-LOG(v)).pow(theta)).pow(DIV(1,theta))
     return result
 
 def log_gumbel_partial_u(u, v, theta):
-    result = gumbel_copula(u, v, theta) * (-LOG(u)).pow(theta-1) * (-theta) * (-LOG(u)).pow(theta-1) / u
+    result = log_gumbel_copula(u,v,theta)+  (DIV(1,theta)-1) (-LOG(u)).pow(theta) + (-LOG(v)).pow(theta) -  LOG(theta) -(1-theta)*(-LOG(u))
     return result
 
 def log_frank_partial_u(u, v, theta):
