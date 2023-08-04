@@ -17,7 +17,7 @@ from pycox.models.cox_time import MLPVanillaCoxTime
 torch.set_num_threads(24)
 sample_size=30000
 
-risk = 'linear'
+risk = 'nonlinear'
 method ='CoxTime'
 print(method, risk)
 

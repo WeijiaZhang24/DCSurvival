@@ -30,6 +30,18 @@ def log_clayton_partial_u(u, v, theta):
     return result
 # if u or v is too small, then u.pow(-theta) wil be inf
 
+def gumbel_copula(u, v, theta):
+    result = torch.exp(-((-torch.log(u)).pow(theta) + (-torch.log(v)).pow(theta)).pow(1/theta))
+    return result
+
+def log_gumbel_partial_u(u, v, theta):
+    result = gumbel_copula(u, v, theta) * (-torch.log(u)).pow(theta-1) * (-theta) * (-torch.log(u)).pow(theta-1) / u
+    return result
+
+def log_frank_partial_u(u, v, theta):
+    result = torch.exp(-theta * u) * (torch.exp(-theta * v) - 1) / (torch.exp(-theta) - 1)
+    return result
+
 def log_survival(t, shape, scale, risk):
     return -(torch.exp(risk + shape*torch.log(t) - shape*torch.log(scale))) # used log transform to avoid numerical issue
 
@@ -42,9 +54,9 @@ def log_density(t,shape,scale,risk):
     return log_hazard + log_survival(t, shape, scale, risk)
 
 # Define our Weibull survival model with Clayton Copula
-class WeibullModelClayton(nn.Module):
-    def __init__(self, num_features, hidden_size = 32):
-        super(WeibullModelClayton, self).__init__()
+class WeibullModelCopula(nn.Module):
+    def __init__(self, num_features, hidden_size = 32, copula = 'Clayton'):
+        super(WeibullModelCopula, self).__init__()
         self.net_t = nn.Sequential(
             nn.Linear(num_features, hidden_size),
             nn.ReLU(),
@@ -63,6 +75,8 @@ class WeibullModelClayton(nn.Module):
         self.shape_c = nn.Parameter(torch.tensor(1.0)) # Censoring Weibull Shape   
         self.scale_c = nn.Parameter(torch.tensor(1.0)) # Censoring Weibull Scale
         self.theta = nn.Parameter(torch.tensor(1.0)) # Clayton Copula Theta
+        self.copula = copula
+
     def log_likelihood(self, x, t, c):
         x_beta_t = self.net_t(x).squeeze()
         x_beta_c = self.net_c(x).squeeze()
@@ -73,8 +87,15 @@ class WeibullModelClayton(nn.Module):
 
         S_E = survival(t, self.shape_t, self.scale_t, x_beta_t)
         S_C = survival(t, self.shape_c, self.scale_c, x_beta_c)
-        event_partial_copula = c * log_clayton_partial_u(S_E, S_C, self.theta)
-        censoring_partial_copula = (1-c) * log_clayton_partial_u(S_C, S_E, self.theta)
+        if self.copula == 'Clayton':
+            event_partial_copula = c * log_clayton_partial_u(S_E, S_C, self.theta)
+            censoring_partial_copula = (1-c) * log_clayton_partial_u(S_C, S_E, self.theta)
+        elif self.copula == "Gumbel":
+            event_partial_copula = c * log_gumbel_partial_u(S_E, S_C, self.theta)
+            censoring_partial_copula = (1-c) * log_gumbel_partial_u(S_C, S_E, self.theta)
+        elif self.copula == "Frank":
+            event_partial_copula = c * log_frank_partial_u(S_E, S_C, self.theta)
+            censoring_partial_copula = (1-c) * log_frank_partial_u(S_C, S_E, self.theta)           
         
         logL = event_log_density + event_partial_copula + censoring_log_density + censoring_partial_copula
     
@@ -91,3 +112,4 @@ class WeibullModelClayton(nn.Module):
     def cum_hazard(self, t, x):
         x_beta_t = self.net_t(x).squeeze()
         return ((t/self.scale_t)**self.shape_t) * torch.exp(x_beta_t)
+    
