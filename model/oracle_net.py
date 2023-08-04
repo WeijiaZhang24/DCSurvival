@@ -95,7 +95,10 @@ class WeibullModelCopula(nn.Module):
             censoring_partial_copula = (1-c) * log_gumbel_partial_u(S_C, S_E, self.theta)
         elif self.copula == "Frank":
             event_partial_copula = c * log_frank_partial_u(S_E, S_C, self.theta)
-            censoring_partial_copula = (1-c) * log_frank_partial_u(S_C, S_E, self.theta)           
+            censoring_partial_copula = (1-c) * log_frank_partial_u(S_C, S_E, self.theta)
+        elif self.copula == "Independent":
+            event_partial_copula = c * S_C
+            censoring_partial_copula = (1-c) * S_E
         
         logL = event_log_density + event_partial_copula + censoring_log_density + censoring_partial_copula
     
