@@ -22,10 +22,10 @@ likelihood_threshold = 1e-10
 
 
 method ='uai2023'
-risk = 'nonlinear'
+risk = 'linear'
 print(method, risk)
 
-def main(risk="linear"):
+def main():
     for theta_true in [0,2,4,6,8,10,12,14,16,18,20]:
         survival_l1 = []
         for repeat in range(5):
@@ -114,4 +114,4 @@ def main(risk="linear"):
         print("theta_true = ", theta_true, "survival_l1 = ", np.nanmean(survival_l1), "+-", np.nanstd(survival_l1))
 
 if __name__ == "__main__":
-    main(risk="nonlinear")
+    main()
