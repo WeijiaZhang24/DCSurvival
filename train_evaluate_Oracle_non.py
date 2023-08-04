@@ -70,7 +70,7 @@ def main():
                                         ])
                 optimizer_theta = optim.Adam([{"params": [model.theta], "lr": 0.01}])  
                 # Train the model
-                for epoch in tqdm(range(num_epochs)):
+                for epoch in range(num_epochs):
                     for covariates, times, events in dataloader:  # iterate over batches
                         optimizer_theta.zero_grad()
                         optimizer_event.zero_grad()
@@ -110,6 +110,7 @@ def main():
             # calculate survival_l1 based on ground truth survival function
             steps = np.linspace(y_test.min(), y_test.max(), 10000)
             performance = surv_diff_aws(truth_model, model, X_test, steps)
+            print(performance)
             survival_l1.append(performance)
         print("theta_true = ", theta_true, "survival_l1 = ", np.nanmean(survival_l1), "+-", np.nanstd(survival_l1))
 
