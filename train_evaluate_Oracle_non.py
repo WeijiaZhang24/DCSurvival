@@ -19,6 +19,7 @@ torch.set_num_threads(6)
 torch.set_default_tensor_type(torch.DoubleTensor)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 likelihood_threshold = 1e-10
+num_epochs = 5000
 
 
 method ='uai2023'
@@ -68,7 +69,6 @@ def main():
                                             {"params": model.net_c.parameters(), "lr": 0.01},
                                         ])
                 optimizer_theta = optim.Adam([{"params": [model.theta], "lr": 0.01}])  
-                num_epochs = 1100
                 # Train the model
                 for epoch in tqdm(range(num_epochs)):
                     for covariates, times, events in dataloader:  # iterate over batches
