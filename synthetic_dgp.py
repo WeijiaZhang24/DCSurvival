@@ -46,14 +46,6 @@ def linear_dgp( copula_name= 'Frank', sample_size = 30000, covariate_dim= 10, th
     event_time = inverse_transform(u, event_risk, v_e, rho_e)
     censoring_time = inverse_transform(v, censoring_risk, v_c, rho_c)
 
-    # if verbose==True:
-    #     print(copula_name)
-    #     # check censoring rate 
-    #     print("{:.5f}".format(np.sum(event_time<censoring_time)/len(event_time)))
-    #     plt.scatter(u, v, s=15)
-    #     plt.savefig('/home/weijia/code/SurvivalACNet_sumo/sample_figs/true_sample_'+ copula_name + '_' +str(theta)  +'.png')
-    #     plt.clf()
-
     # create observed time 
     observed_time = np.minimum(event_time, censoring_time)
     event_indicator = (event_time<censoring_time).astype(int)
@@ -92,15 +84,7 @@ def nonlinear_dgp( copula_name= 'Frank', sample_size = 30000, theta=10, rng = np
 
     event_time = inverse_transform(u, event_risk, v_e, rho_e)
     censoring_time = inverse_transform(v, censoring_risk, v_c, rho_c)
-
-    # if verbose==True:
-    #     print(copula_name)
-    #     # check censoring rate 
-    #     print("{:.5f}".format(np.sum(event_time<censoring_time)/len(event_time)))
-    #     plt.scatter(u, v, s=15)
-    #     plt.savefig('/home/weijia/code/SurvivalACNet_sumo/sample_figs/true_sample_'+ copula_name + '_' +str(theta)  +'.png')
-    #     plt.clf()
-
+    
     # create observed time 
     observed_time = np.minimum(event_time, censoring_time)
     event_indicator = (event_time<censoring_time).astype(int)
