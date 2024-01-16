@@ -4,7 +4,7 @@ PyTorch implementation for the following paper:
 
 Weijia Zhang, Chun Kai Ling, Xuanhui Zhang. Deep Copula-Based Survival Analysis for Dependent Censoring with Identifiability Guarantees. Proceedings of the 38th AAAI Conference on Artificial Intelligence (AAAI-2024). in press. 
 
-[Read the paper and supplementary materials](https://arxiv.org/abs/2312.15566).
+[Read the paper with supplementary materials](https://arxiv.org/abs/2312.15566).
 
 ## Citation
 If you find this implementation useful in your research, please consider citing:
