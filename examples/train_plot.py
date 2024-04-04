@@ -5,7 +5,6 @@ import torch.optim as optim
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 
-# sys.path.append(os.path.abspath('../'))
 from dcsurvival.dirac_phi import DiracPhi
 from dcsurvival.survival import DCSurvival, sample
 from dcsurvival.synthetic_dgp import linear_dgp
