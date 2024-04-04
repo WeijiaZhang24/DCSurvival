@@ -3,6 +3,7 @@ import torch
 from dcsurvival.survival import MixExpPhi, MixExpPhi2FixedSlope, PhiInv, SurvivalCopula
 
 
+# TODO: move to pytest
 def test_grad_of_phi() -> None:
     phi_net = MixExpPhi()
     PhiInv(phi_net)
@@ -16,8 +17,7 @@ def test_grad_of_phi() -> None:
 def test_grad_y_of_inverse() -> None:
     phi_net = MixExpPhi()
     phi_inv = PhiInv(phi_net)
-    query = torch.tensor(
-        [[0.1, 0.2], [0.2, 0.3], [0.25, 0.7]]).requires_grad_(True)
+    query = torch.tensor([[0.1, 0.2], [0.2, 0.3], [0.25, 0.7]]).requires_grad_(True)
 
     gradcheck(phi_inv, (query, ), eps=1e-10)
     gradgradcheck(phi_inv, (query, ), eps=1e-10)
@@ -33,8 +33,7 @@ def test_grad_w_of_inverse() -> None:
     # Jitter weights in new_phi.
     new_phi_inv.phi.mix.data = phi_inv.phi.mix.data + eps
 
-    query = torch.tensor(
-        [[0.1, 0.2, 0.3], [0.2, 0.3, 0.4], [0.99, 0.99, 0.99]]).requires_grad_(True)
+    query = torch.tensor([[0.1, 0.2, 0.3], [0.2, 0.3, 0.4], [0.99, 0.99, 0.99]]).requires_grad_(True)
     old_value = phi_inv(query).sum()
     old_value.backward()
     anal_grad = phi_inv.phi.mix.grad
@@ -47,8 +46,7 @@ def test_grad_w_of_inverse() -> None:
 
 def test_grad_y_of_pdf() -> None:
     phi_net = MixExpPhi()
-    query = torch.tensor(
-        [[0.1, 0.2, 0.3], [0.2, 0.3, 0.4], [0.99, 0.99, 0.99]]).requires_grad_(True)
+    query = torch.tensor([[0.1, 0.2, 0.3], [0.2, 0.3, 0.4], [0.99, 0.99, 0.99]]).requires_grad_(True)
     cop = SurvivalCopula(phi_net)
     def f(y): return cop(y, mode="pdf")
     gradcheck(f, (query, ), eps=1e-8)
@@ -56,6 +54,7 @@ def test_grad_y_of_pdf() -> None:
     gradgradcheck(f, (query, ), eps=1e-8, atol=1e-6, rtol=1e-2)
 
 
+# FIXME: what should the "Copula" class be in updated test?
 # def plot_pdf_and_cdf_over_grid() -> None:
 #     phi_net = MixExpPhi()
 #     cop = Copula(phi_net)
