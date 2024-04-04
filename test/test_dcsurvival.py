@@ -1,6 +1,6 @@
 import torch
 
-from dcsurvival.survival import MixExpPhi, MixExpPhi2FixedSlope, PhiInv, SurvivalCopula, sample
+from dcsurvival.survival import MixExpPhi, MixExpPhi2FixedSlope, PhiInv, SurvivalCopula
 
 
 def test_grad_of_phi() -> None:
@@ -56,127 +56,124 @@ def test_grad_y_of_pdf() -> None:
     gradgradcheck(f, (query, ), eps=1e-8, atol=1e-6, rtol=1e-2)
 
 
-def plot_pdf_and_cdf_over_grid() -> None:
-    phi_net = MixExpPhi()
-    cop = Copula(phi_net)
+# def plot_pdf_and_cdf_over_grid() -> None:
+#     phi_net = MixExpPhi()
+#     cop = Copula(phi_net)
 
-    n = 500
-    x1 = np.linspace(0.001, 1, n)
-    x2 = np.linspace(0.001, 1, n)
-    xv1, xv2 = np.meshgrid(x1, x2)
-    xv1_tensor = torch.tensor(xv1.flatten())
-    xv2_tensor = torch.tensor(xv2.flatten())
-    query = torch.stack((xv1_tensor, xv2_tensor),
-                        ).double().t().requires_grad_(True)
-    cdf = cop(query, mode="cdf")
-    pdf = cop(query, mode="pdf")
+#     n = 500
+#     x1 = np.linspace(0.001, 1, n)
+#     x2 = np.linspace(0.001, 1, n)
+#     xv1, xv2 = np.meshgrid(x1, x2)
+#     xv1_tensor = torch.tensor(xv1.flatten())
+#     xv2_tensor = torch.tensor(xv2.flatten())
+#     query = torch.stack((xv1_tensor, xv2_tensor),
+#                         ).double().t().requires_grad_(True)
+#     cdf = cop(query, mode="cdf")
+#     pdf = cop(query, mode="pdf")
 
-    assert abs(pdf.mean().detach().numpy().sum() -
-               1) < 1e-6, "Mean of pdf over grid should be 1"
-    assert abs(cdf[-1].detach().numpy().sum() -
-               1) < 1e-6, "CDF at (1..1) should be should be 1"
-
-
-def plot_cond_cdf() -> None:
-    phi_net = MixExpPhi()
-    cop = Copula(phi_net)
-
-    n = 500
-    xv2 = np.linspace(0.001, 1, n)
-    xv2_tensor = torch.tensor(xv2.flatten())
-    xv1_tensor = 0.9 * torch.ones_like(xv2_tensor)
-    x = torch.stack([xv1_tensor, xv2_tensor], dim=1).requires_grad_(True)
-    cond_cdf = cop(x, mode="cond_cdf", others={"cond_dims": [0]})
-
-    plt.figure()
-    plt.plot(cond_cdf.detach().numpy())
-    plt.title("Conditional CDF")
-    plt.draw()
-    plt.pause(0.01)
+#     assert abs(pdf.mean().detach().numpy().sum() -
+#                1) < 1e-6, "Mean of pdf over grid should be 1"
+#     assert abs(cdf[-1].detach().numpy().sum() -
+#                1) < 1e-6, "CDF at (1..1) should be should be 1"
 
 
-def plot_samples() -> None:
-    phi_net = MixExpPhi()
-    cop = Copula(phi_net)
+# def plot_cond_cdf() -> None:
+#     phi_net = MixExpPhi()
+#     cop = Copula(phi_net)
 
-    s = sample(cop, 2, 2000, seed=142857)
-    s_np = s.detach().numpy()
+#     n = 500
+#     xv2 = np.linspace(0.001, 1, n)
+#     xv2_tensor = torch.tensor(xv2.flatten())
+#     xv1_tensor = 0.9 * torch.ones_like(xv2_tensor)
+#     x = torch.stack([xv1_tensor, xv2_tensor], dim=1).requires_grad_(True)
+#     cond_cdf = cop(x, mode="cond_cdf", others={"cond_dims": [0]})
 
-    plt.figure()
-    plt.scatter(s_np[:, 0], s_np[:, 1])
-    plt.title("Sampled points from Copula")
-    plt.draw()
-    plt.pause(0.01)
-
-
-def plot_loss_surface() -> None:
-    phi_net = MixExpPhi2FixedSlope()
-    cop = Copula(phi_net)
-
-    s = sample(cop, 2, 2000, seed=142857)
-    s.detach().numpy()
-
-    losses = []
-    x = np.linspace(-1e-2, 1e-2, 1000)
-    for SS in x:
-        new_cop = copy.deepcopy(cop)
-        new_cop.phi.mix.data = cop.phi.mix.data + SS
-
-        loss = -torch.log(new_cop(s, mode="pdf")).sum()
-        losses.append(loss.detach().numpy().sum())
-
-    plt.figure()
-    plt.plot(x, losses)
-    plt.title("Loss surface")
-    plt.draw()
-    plt.pause(0.01)
+#     plt.figure()
+#     plt.plot(cond_cdf.detach().numpy())
+#     plt.title("Conditional CDF")
+#     plt.draw()
+#     plt.pause(0.01)
 
 
-def test_training(test_grad_w=False) -> None:
-    gen_phi_net = MixExpPhi()
-    PhiInv(gen_phi_net)
-    gen_cop = Copula(gen_phi_net)
+# def plot_samples() -> None:
+#     phi_net = MixExpPhi()
+#     cop = Copula(phi_net)
 
-    s = sample(gen_cop, 2, 2000, seed=142857)
-    s.detach().numpy()
+#     s = sample(cop, 2, 2000, seed=142857)
+#     s_np = s.detach().numpy()
 
-    ideal_loss = -torch.log(gen_cop(s, mode="pdf")).sum()
+#     plt.figure()
+#     plt.scatter(s_np[:, 0], s_np[:, 1])
+#     plt.title("Sampled points from Copula")
+#     plt.draw()
+#     plt.pause(0.01)
 
-    train_cop = copy.deepcopy(gen_cop)
-    train_cop.phi.mix.data *= 1.5
-    train_cop.phi.slope.data *= 1.5
-    print("Initial loss", ideal_loss)
-    optimizer = optim.Adam(train_cop.parameters(), lr=1e-3)
 
-    def numerical_grad(cop) -> None:
-        # Take gradients w.r.t to the first mixing parameter
-        print("Analytic gradients:", cop.phi.mix.grad[0])
+# def plot_loss_surface() -> None:
+#     phi_net = MixExpPhi2FixedSlope()
+#     cop = Copula(phi_net)
 
-        _old_cop, new_cop = copy.deepcopy(cop), copy.deepcopy(cop)
-        # First order approximation of gradient of weights
-        eps = 1e-6
-        new_cop.phi.mix.data[0] = cop.phi.mix.data[0] + eps
-        x2 = -torch.log(new_cop(s, mode="pdf")).sum()
-        x1 = -torch.log(cop(s, mode="pdf")).sum()
+#     s = sample(cop, 2, 2000, seed=142857)
+#     s.detach().numpy()
 
-        first_order_approximate = (x2-x1)/eps
-        print("First order approx.:", first_order_approximate)
+#     losses = []
+#     x = np.linspace(-1e-2, 1e-2, 1000)
+#     for SS in x:
+#         new_cop = copy.deepcopy(cop)
+#         new_cop.phi.mix.data = cop.phi.mix.data + SS
 
-    for iter in range(100000):
-        optimizer.zero_grad()
-        loss = -torch.log(train_cop(s, mode="pdf")).sum()
-        loss.backward()
-        print("iter", iter, ":", loss, "ideal loss:", ideal_loss)
-        if test_grad_w:
-            numerical_grad(train_cop)
-        optimizer.step()
+#         loss = -torch.log(new_cop(s, mode="pdf")).sum()
+#         losses.append(loss.detach().numpy().sum())
+
+#     plt.figure()
+#     plt.plot(x, losses)
+#     plt.title("Loss surface")
+#     plt.draw()
+#     plt.pause(0.01)
+
+
+# def test_training(test_grad_w=False) -> None:
+#     gen_phi_net = MixExpPhi()
+#     PhiInv(gen_phi_net)
+#     gen_cop = Copula(gen_phi_net)
+
+#     s = sample(gen_cop, 2, 2000, seed=142857)
+#     s.detach().numpy()
+
+#     ideal_loss = -torch.log(gen_cop(s, mode="pdf")).sum()
+
+#     train_cop = copy.deepcopy(gen_cop)
+#     train_cop.phi.mix.data *= 1.5
+#     train_cop.phi.slope.data *= 1.5
+#     print("Initial loss", ideal_loss)
+#     optimizer = optim.Adam(train_cop.parameters(), lr=1e-3)
+
+#     def numerical_grad(cop) -> None:
+#         # Take gradients w.r.t to the first mixing parameter
+#         print("Analytic gradients:", cop.phi.mix.grad[0])
+
+#         _old_cop, new_cop = copy.deepcopy(cop), copy.deepcopy(cop)
+#         # First order approximation of gradient of weights
+#         eps = 1e-6
+#         new_cop.phi.mix.data[0] = cop.phi.mix.data[0] + eps
+#         x2 = -torch.log(new_cop(s, mode="pdf")).sum()
+#         x1 = -torch.log(cop(s, mode="pdf")).sum()
+
+#         first_order_approximate = (x2-x1)/eps
+#         print("First order approx.:", first_order_approximate)
+
+#     for iter in range(100000):
+#         optimizer.zero_grad()
+#         loss = -torch.log(train_cop(s, mode="pdf")).sum()
+#         loss.backward()
+#         print("iter", iter, ":", loss, "ideal loss:", ideal_loss)
+#         if test_grad_w:
+#             numerical_grad(train_cop)
+#         optimizer.step()
 
 if __name__ == "__main__":
     import copy
 
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import torch.optim as optim
     from torch.autograd import gradcheck, gradgradcheck
 
     torch.set_default_tensor_type(torch.DoubleTensor)
@@ -186,11 +183,9 @@ if __name__ == "__main__":
     test_grad_w_of_inverse()
     test_grad_y_of_pdf()
 
-    plot_pdf_and_cdf_over_grid()
-    plot_cond_cdf()
-    plot_samples()
-    """ Uncomment for rudimentary training.
-        Note: very slow and unrealistic.
-    plot_loss_surface()
-    test_training()
-    """
+    ## Uncomment for rudimentary training. NOTE: very slow and unrealistic.
+    # plot_pdf_and_cdf_over_grid()
+    # plot_cond_cdf()
+    # plot_samples()
+    # plot_loss_surface()
+    # test_training()

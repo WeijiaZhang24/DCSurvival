@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -114,7 +116,7 @@ def newton_root(phi, y, t0=None, max_iter=2000, tol=1e-14, guarded=False):
     t = torch.zeros_like(y) if t0 is None else t0.clone().detach()
 
     s = y.size()
-    for _ in range(max_iter):
+    for it in range(max_iter):
 
         with torch.enable_grad():
             f_t = phi(t.requires_grad_(True))
@@ -454,6 +456,13 @@ class DCSurvival(nn.Module):
             return self.sumo_e.survival(X, t)
 
 
+def cond_cdf_func(u, U, net, dim):
+    U_ = U.clone().detach()
+    U_[:, dim] = u
+    return net.cond_cdf(U_[:, :(dim+1)], "cond_cdf",
+                    others={"cond_dims": list(range(dim))})
+
+
 def sample(net, ndims, N, device, seed=142857):
     """Note: this does *not* use the efficient method described in the paper.
     Instead, we will use the naive method, i.e., conditioning on each
@@ -473,16 +482,13 @@ def sample(net, ndims, N, device, seed=142857):
         print("Sampling from dim: %s" % dim)
         y = U[:, dim].detach().clone()
 
-        def cond_cdf_func(u):
-            U_ = U.clone().detach()
-            U_[:, dim] = u
-            return net.cond_cdf(U_[:, :(dim+1)], "cond_cdf",
-                           others={"cond_dims": list(range(dim))})
-
         # Call inverse using the conditional cdf `M` as the function.
         # Note that the weight parameter is set to None since `M` is not parameterized,
         # i.e., hardcoded as the conditional cdf itself.
-        U[:, dim] = bisection_default_increasing(cond_cdf_func, y, tol=1e-8).detach()
+        U[:, dim] = bisection_default_increasing(
+            partial(cond_cdf_func, U=U, net=net, dim=dim),
+            y,
+        tol=1e-8).detach()
 
     # Revert to old random state.
     torch.random.set_rng_state(old_rng_state)
