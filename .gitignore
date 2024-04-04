@@ -1,4 +1,9 @@
+# cache & build
 __pycache__/
+*.egg-info
+.mypy_cache/
+build/
+
 *.pth
 *.swp
 *.log

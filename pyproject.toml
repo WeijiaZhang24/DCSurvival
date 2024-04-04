@@ -3,7 +3,7 @@ requires = ["setuptools>=61.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "DCSurvival"
+name = "dcsurvival"
 version = "0.0.1"
 description = ""
 authors = [{ name = "Weijia Zhang", email = "weijia.zhang.xh@gmail.com" }]
