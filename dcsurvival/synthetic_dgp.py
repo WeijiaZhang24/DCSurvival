@@ -1,8 +1,14 @@
 import numpy as np
 import torch
+
 # import matplotlib.pyplot as plt
 from statsmodels.distributions.copula.api import (
-    CopulaDistribution, GumbelCopula, FrankCopula, ClaytonCopula, IndependenceCopula)
+    ClaytonCopula,
+    FrankCopula,
+    GumbelCopula,
+    IndependenceCopula,
+)
+
 torch.set_default_tensor_type(torch.DoubleTensor)
 torch.backends.cudnn.allow_tf32 = False
 
@@ -11,12 +17,18 @@ def LOG(x):
 
 # Generate according to Algorithm 2 in "Copula-based Deep Survival Models for Dependent Censoring"
 def inverse_transform(value, risk, shape, scale):
-    return (-LOG(value)/np.exp(risk))**(1/shape)*scale       
+    return (-LOG(value)/np.exp(risk))**(1/shape)*scale
     # return (-np.log(1-value)/np.exp(risk))**(1/shape)*scale
 
-def linear_dgp( copula_name= 'Frank', sample_size = 30000, covariate_dim= 10, theta=10, rng = np.random.default_rng(), verbose=True):
+def linear_dgp( copula_name= "Frank", sample_size = 30000, covariate_dim= 10, theta=10, rng = None, verbose=True):
     # Generate synthetic data (time-to-event and censoring indicator)
-    v_e=4; rho_e=14; v_c=3; rho_c=16
+    v_e=4
+    rho_e=14
+    v_c=3
+    rho_c=16
+
+    if rng is None:
+        rng = np.random.default_rng()
 
     # generate X from 10 dimensional uniform distribution from 0 to 1
     X = rng.uniform(0, 1, (sample_size, covariate_dim))
@@ -29,16 +41,16 @@ def linear_dgp( copula_name= 'Frank', sample_size = 30000, covariate_dim= 10, th
     # multiple beta_c with X to get censoring risk
     censoring_risk = np.matmul(X, beta_c).squeeze()
 
-    if copula_name=='Frank':
+    if copula_name=="Frank":
         copula = FrankCopula(theta=theta)
-    elif copula_name=='Gumbel':
+    elif copula_name=="Gumbel":
         copula = GumbelCopula(theta=theta)
-    elif copula_name=='Clayton':
+    elif copula_name=="Clayton":
         copula = ClaytonCopula(theta=theta)
     elif copula_name=="Independent":
         copula = IndependenceCopula()
     else:
-        raise ValueError('Copula not implemented')
+        raise ValueError("Copula not implemented")
     sample = copula.rvs(sample_size, random_state=rng)
     u = sample[:, 0]
     v = sample[:, 1]
@@ -46,16 +58,22 @@ def linear_dgp( copula_name= 'Frank', sample_size = 30000, covariate_dim= 10, th
     event_time = inverse_transform(u, event_risk, v_e, rho_e)
     censoring_time = inverse_transform(v, censoring_risk, v_c, rho_c)
 
-    # create observed time 
+    # create observed time
     observed_time = np.minimum(event_time, censoring_time)
     event_indicator = (event_time<censoring_time).astype(int)
 
     return X, observed_time, event_indicator, event_time, censoring_time, beta_e
 
 
-def nonlinear_dgp( copula_name= 'Frank', sample_size = 30000, theta=10, rng = np.random.default_rng(142857), verbose=True):
+def nonlinear_dgp( copula_name= "Frank", sample_size = 30000, theta=10, rng = None, verbose=True):
+
+    if rng is None:
+        rng = np.random.default_rng(142857)
     # Generate synthetic data (time-to-event and censoring indicator)
-    v_e=4; rho_e=17; v_c=3; rho_c=16
+    v_e=4
+    rho_e=17
+    v_c=3
+    rho_c=16
 
     # generate X from 10 dimensional uniform distribution from 0 to 1
     X = np.random.uniform(0, 1, (sample_size, 1))
@@ -64,28 +82,28 @@ def nonlinear_dgp( copula_name= 'Frank', sample_size = 30000, theta=10, rng = np
     # # generate event risk coefficient beta_e from 10 dimensional uniforma distribution from 0 to 1
     # beta_e = np.random.uniform(0, 1, (covariate_dim,))
     # multiply beta_e with X to get event risk
-    event_risk = 2* np.sin(X*np.pi).squeeze() 
+    event_risk = 2* np.sin(X*np.pi).squeeze()
     # multiple beta_c with X to get censoring risk
     censoring_risk = 2* np.sin(X*np.pi+0.5).squeeze()
 
-    if copula_name=='Frank':
+    if copula_name=="Frank":
         copula = FrankCopula(theta=theta)
-    elif copula_name=='Gumbel':
+    elif copula_name=="Gumbel":
         copula = GumbelCopula(theta=theta)
-    elif copula_name=='Clayton':
+    elif copula_name=="Clayton":
         copula = ClaytonCopula(theta=theta)
     elif copula_name=="Independent":
         copula = IndependenceCopula()
     else:
-        raise ValueError('Copula not implemented')
+        raise ValueError("Copula not implemented")
     sample = copula.rvs(sample_size, random_state=rng)
     u = sample[:, 0]
     v = sample[:, 1]
 
     event_time = inverse_transform(u, event_risk, v_e, rho_e)
     censoring_time = inverse_transform(v, censoring_risk, v_c, rho_c)
-    
-    # create observed time 
+
+    # create observed time
     observed_time = np.minimum(event_time, censoring_time)
     event_indicator = (event_time<censoring_time).astype(int)
 

@@ -1,13 +1,10 @@
-import torch
 import numpy as np
-from tqdm import tqdm
 import torch
 
 
 def Survival(truth_model, estimate, x, time_steps):
-    """
-    model: the learned survival model
-    truth: the true survival model
+    """model: the learned survival model
+    truth: the true survival model.
     """
     device = torch.device("cpu")
     # surv1 = torch.zeros((x.shape[0], time_steps.shape[0]),device=device)
@@ -23,7 +20,7 @@ def Survival(truth_model, estimate, x, time_steps):
 
 
 def surv_diff(truth_model, estimate, x, steps):
-    device = torch.device("cpu")
+    torch.device("cpu")
     surv1, surv2, time_steps, t_m = Survival(truth_model, estimate, x, steps)
     # integ = torch.abs(surv1-surv2).sum()
     integ = torch.sum( torch.diff(torch.cat([torch.zeros(1), time_steps])) * torch.abs(surv1-surv2)   )
@@ -64,7 +61,7 @@ def BS_censored(t, event_t, x, model,e, km_h, km_p):
     t_ind2 = (t < event_t).type(torch.float32)
     G_t = KM_evaluater(t, km_h, km_p).clamp(0.01,1)
     G_event = KM_evaluater(event_t, km_h, km_p).clamp(0.01,100)
-    
+
     #print(torch.sum(t_ind1/(G_event+1e-9*(G_event==0))), torch.sum(t_ind2/(G_t+1e-9*(G_t==0))))
     return torch.mean((tmp *(t_ind1/(G_event+1e-9*(G_event==0))))  + (tmp * (t_ind2/(G_t+1e-9*(G_t==0)))))
 
@@ -82,49 +79,49 @@ def IBS_plain(event_t, x, model, t_max, n_bins=100):
     ibs = 0
     for t_ in torch.linspace(0, t_max, n_bins):
         tmp = BS(torch.ones_like(event_t, device=event_t.device)*t_, event_t, x, model)
-        
+
         ibs += tmp * len_bin
     return ibs/t_max
 
 
 
 def evaluate_c_index(dep_model, indep_model, dgp, test_dict, E_reverse = False):
-    E = test_dict['E']
+    E = test_dict["E"]
     if E_reverse:
-        E = 1-test_dict['E']
-    dgp_obs = C_index(test_dict['T'], test_dict['X'], E, dgp).cpu().detach().numpy().item()
-    dep_obs = C_index(test_dict['T'], test_dict['X'], E, dep_model).cpu().detach().numpy().item()
-    indep_obs = C_index(test_dict['T'], test_dict['X'], E, indep_model).cpu().detach().numpy().item()
+        E = 1-test_dict["E"]
+    dgp_obs = C_index(test_dict["T"], test_dict["X"], E, dgp).cpu().detach().numpy().item()
+    dep_obs = C_index(test_dict["T"], test_dict["X"], E, dep_model).cpu().detach().numpy().item()
+    indep_obs = C_index(test_dict["T"], test_dict["X"], E, indep_model).cpu().detach().numpy().item()
     aux_e = torch.ones_like(E, device = E.device)
-    t = test_dict['t1']
+    t = test_dict["t1"]
     if E_reverse:
-        t = test_dict['t2']
-    dgp_tot = C_index(t, test_dict['X'], aux_e, dgp).cpu().numpy().item()
-    dep_tot = C_index(t, test_dict['X'], aux_e, dep_model).cpu().numpy().item()
-    indep_tot = C_index(t, test_dict['X'], aux_e, indep_model).cpu().numpy().item()
+        t = test_dict["t2"]
+    dgp_tot = C_index(t, test_dict["X"], aux_e, dgp).cpu().numpy().item()
+    dep_tot = C_index(t, test_dict["X"], aux_e, dep_model).cpu().numpy().item()
+    indep_tot = C_index(t, test_dict["X"], aux_e, indep_model).cpu().numpy().item()
     return [[dgp_obs, dep_obs, indep_obs], [dgp_tot, dep_tot, indep_tot]]
-    
-    
+
+
 
 def evaluate_IBS(dep_model, indep_model, dgp, test_dict,km_h, km_p, E_reverse):
-    t = test_dict['t1']
+    t = test_dict["t1"]
     if E_reverse:
-        t = test_dict['t2']
-    dgp_tot = IBS_plain(t, test_dict['X'], dgp, torch.max(t), n_bins=100).cpu().numpy().item()
-    dep_tot = IBS_plain(t, test_dict['X'], dep_model, torch.max(t), n_bins=100).cpu().numpy().item()
-    indep_tot = IBS_plain(t, test_dict['X'], indep_model, torch.max(t), n_bins=100).cpu().numpy().item()
-    E = test_dict['E']
+        t = test_dict["t2"]
+    dgp_tot = IBS_plain(t, test_dict["X"], dgp, torch.max(t), n_bins=100).cpu().numpy().item()
+    dep_tot = IBS_plain(t, test_dict["X"], dep_model, torch.max(t), n_bins=100).cpu().numpy().item()
+    indep_tot = IBS_plain(t, test_dict["X"], indep_model, torch.max(t), n_bins=100).cpu().numpy().item()
+    E = test_dict["E"]
     if E_reverse:
-        E = 1-test_dict['E']
-    dgp_obs = IBS(test_dict['T'], test_dict['X'], dgp, torch.max(test_dict['T']), E, km_h, km_p).cpu().numpy().item()
-    dep_obs = IBS(test_dict['T'], test_dict['X'], dep_model, torch.max(test_dict['T']), E, km_h, km_p).cpu().numpy().item()
-    indep_obs = IBS(test_dict['T'], test_dict['X'], indep_model, torch.max(test_dict['T']), E, km_h, km_p).cpu().numpy().item()
+        E = 1-test_dict["E"]
+    dgp_obs = IBS(test_dict["T"], test_dict["X"], dgp, torch.max(test_dict["T"]), E, km_h, km_p).cpu().numpy().item()
+    dep_obs = IBS(test_dict["T"], test_dict["X"], dep_model, torch.max(test_dict["T"]), E, km_h, km_p).cpu().numpy().item()
+    indep_obs = IBS(test_dict["T"], test_dict["X"], indep_model, torch.max(test_dict["T"]), E, km_h, km_p).cpu().numpy().item()
     return [[dgp_obs, dep_obs, indep_obs], [dgp_tot, dep_tot, indep_tot]]
-    
+
 def KM(t, e):
     device= t.device
-    t = t.cpu().numpy().reshape(-1,)
-    e = e.cpu().numpy().reshape(-1,)
+    t = t.cpu().numpy().reshape(-1)
+    e = e.cpu().numpy().reshape(-1)
     indices = np.argsort(t)
     t_sorted = t[indices]
     e_sorted = e[indices]
@@ -141,7 +138,7 @@ def KM(t, e):
     event_times_end = np.zeros(event_times.shape[0]+1)
     event_times_end[1:] = event_times
     return torch.from_numpy(event_times_end).to(device), torch.from_numpy(prob_end).to(device)
-    
+
 def KM_evaluater(t, h, p):
     device = t.device
     h = h.cpu().numpy()
@@ -150,10 +147,10 @@ def KM_evaluater(t, h, p):
     if len(t.shape) == 1:
         idx = np.digitize(t, h, False)
         return torch.from_numpy(p[idx-1]).to(device)
-    else:
-        idx = np.digitize(t, h, False)
-        prob = np.zeros_like(t)
-        for i in range(idx.shape[0]):
-            for j in range(idx.shape[1]):
-                prob[i, j] = p[idx[i,j]-1]
-        return torch.from_numpy(prob).to(device)
+
+    idx = np.digitize(t, h, False)
+    prob = np.zeros_like(t)
+    for i in range(idx.shape[0]):
+        for j in range(idx.shape[1]):
+            prob[i, j] = p[idx[i,j]-1]
+    return torch.from_numpy(prob).to(device)

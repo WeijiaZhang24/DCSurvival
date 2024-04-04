@@ -1,28 +1,26 @@
-import torch
-import numpy as np
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+
+import numpy as np
+import torch
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
-from dirac_phi import DiracPhi
-from survival import DCSurvival
-
-from torch.utils.data import TensorDataset, DataLoader
-import torch.optim as optim
-
-from model.truth_net import Weibull_linear, Weibull_nonlinear
-from metrics.metric import surv_diff
-from synthetic_dgp import linear_dgp, nonlinear_dgp
-from sklearn.model_selection import train_test_split
+from dcsurvival.dirac_phi import DiracPhi
+from dcsurvival.metrics.metric import surv_diff
+from dcsurvival.model.truth_net import Weibull_linear, Weibull_nonlinear
+from dcsurvival.survival import DCSurvival
+from dcsurvival.synthetic_dgp import linear_dgp, nonlinear_dgp
 
 sample_size=30000
 torch.set_num_threads(24)
 torch.set_default_tensor_type(torch.DoubleTensor)
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
-method ='ours'
-risk = 'linear'
+method ="ours"
+risk = "linear"
 print(method, risk)
 
 depth = 2
@@ -33,23 +31,20 @@ num_epochs = 5000
 batch_size = 30000
 early_stop_epochs = 100
 
-def main():
+def main() -> None:
     for theta_true in [5]:
         survival_l1 = []
-        if theta_true==0:
-            copula_form = "Independent"
-        else:
-            copula_form = "Frank"
+        copula_form = "Independent" if theta_true == 0 else "Frank"
         print(copula_form)
         for repeat in range(5):
             seed = 142857 + repeat
-            rng = np.random.default_rng(seed)   
-            if risk == 'linear':
-                X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form, 
+            rng = np.random.default_rng(seed)
+            if risk == "linear":
+                X, observed_time, event_indicator, _, _, beta_e = linear_dgp( copula_name=copula_form,
                                                                              theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
-            elif risk == 'nonlinear':
-                X, observed_time, event_indicator, _, _ = nonlinear_dgp(copula_name=copula_form, 
-                                                                         theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)                                              
+            elif risk == "nonlinear":
+                X, observed_time, event_indicator, _, _ = nonlinear_dgp(copula_name=copula_form,
+                                                                         theta=theta_true, sample_size=sample_size, rng=rng, verbose=False)
             # split train test
             X_train, X_test, y_train, y_test, indicator_train, indicator_test = train_test_split(X, observed_time, event_indicator, test_size=0.33, stratify= event_indicator, random_state=repeat)
             # split train val
@@ -73,16 +68,16 @@ def main():
             # optimizer = optim.Adam(model.parameters(), lr = 0.001)
             optimizer = optim.Adam([{"params": model.sumo_e.parameters(), "lr": 1e-3},
                                     {"params": model.sumo_c.parameters(), "lr": 1e-3},
-                                    {"params": model.phi.parameters(), "lr": 1e-4}
+                                    {"params": model.phi.parameters(), "lr": 1e-4},
                                 ])
             # Train the model
-            best_val_loglikelihood = float('-inf')
+            best_val_loglikelihood = float("-inf")
             epochs_no_improve = 0
             for epoch in tqdm(range(num_epochs)):
             # for epoch in range(num_epochs):
                 optimizer.zero_grad()
                 logloss = model(covariate_tensor_train, times_tensor_train, event_indicator_tensor_train, max_iter = 10000)
-                (-logloss).backward() 
+                (-logloss).backward()
                 optimizer.step()
 
                 if epoch % 10 == 0:
@@ -90,8 +85,8 @@ def main():
                     if val_loglikelihood > (best_val_loglikelihood + 1):
                         best_val_loglikelihood = val_loglikelihood
                         epochs_no_improve = 0
-                        torch.save({'epoch': epoch, 'model_state_dict': model.state_dict(),'loss': best_val_loglikelihood,
-                                    }, '/home/DCSurvival/checkpoints/ours_linear_'+copula_form + '_' +str(theta_true)+'.pth')
+                        torch.save({"epoch": epoch, "model_state_dict": model.state_dict(),"loss": best_val_loglikelihood,
+                                    }, "/home/DCSurvival/checkpoints/ours_linear_"+copula_form + "_" +str(theta_true)+".pth")
                     else:
                         if val_loglikelihood > best_val_loglikelihood:
                             best_val_loglikelihood = val_loglikelihood
@@ -101,8 +96,8 @@ def main():
                     # print('Early stopping triggered at epoch: %s' % epoch)
                     break
             # load the best model
-            checkpoint = torch.load('/home/DCSurvival/checkpoints/ours_linear_'+copula_form + '_' +str(theta_true)+'.pth')
-            model.load_state_dict(checkpoint['model_state_dict'])
+            checkpoint = torch.load("/home/DCSurvival/checkpoints/ours_linear_"+copula_form + "_" +str(theta_true)+".pth")
+            model.load_state_dict(checkpoint["model_state_dict"])
             # calculate survival_l1 based on ground truth survival function
             steps = np.linspace(y_test.min(), y_test.max(), 1000)
             performance = surv_diff(truth_model, model, X_test, steps)
