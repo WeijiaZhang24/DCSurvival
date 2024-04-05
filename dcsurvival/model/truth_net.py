@@ -1,6 +1,8 @@
-import torch 
 # import matplotlib.pyplot as plt
 import math
+
+import torch
+
 
 def LOG(x):
     return torch.log(x+1e-20*(x<1e-20))
@@ -9,11 +11,11 @@ def sine(x):
     return 2 * torch.sin(x * math.pi + 0.1)
 
 class Weibull_linear:
-    def __init__(self, num_feature, shape, scale, device, coeff = None):
+    def __init__(self, num_feature, shape, scale, device, coeff = None) -> None:
         #torch.manual_seed(0)
         self.num_feature = num_feature
         self.alpha = torch.tensor([scale], device=device).type(torch.float64) # alpha is scale
-        self.gamma = torch.tensor([shape], device=device).type(torch.float64) # gamma is shape       
+        self.gamma = torch.tensor([shape], device=device).type(torch.float64) # gamma is shape
         if coeff is None:
             self.coeff = torch.rand((num_feature,), device=device).type(torch.float64)
         else:
@@ -21,26 +23,26 @@ class Weibull_linear:
 
     def PDF(self ,t ,x):
         return self.hazard(t, x) * self.survival(t,x)
-    
-    def CDF(self ,t ,x):   
+
+    def CDF(self ,t ,x):
         return 1 - self.survival(t,x)
-    
-    def survival(self ,t ,x):   
+
+    def survival(self ,t ,x):
         return torch.exp(-self.cum_hazard(t,x))
-    
+
     def hazard(self, t, x):
         return ((self.gamma/self.alpha)*((t/self.alpha)**(self.gamma-1))) * torch.exp(torch.matmul(x, self.coeff))
-        
+
     def cum_hazard(self, t, x):
         return ((t/self.alpha)**self.gamma) * torch.exp(torch.matmul(x, self.coeff))
-    
+
     def rvs(self, x, u):
         return ((-LOG(u)/torch.exp(torch.matmul(x, self.coeff)))**(1/self.gamma))*self.alpha
 
 
 class Weibull_nonlinear:
     #torch.manual_seed(0)
-    def __init__(self, shape, scale, device):
+    def __init__(self, shape, scale, device) -> None:
         #torch.manual_seed(0)
         self.alpha = torch.tensor([scale],device=device).type(torch.float32)
         self.gamma = torch.tensor([shape], device=device).type(torch.float32)
@@ -48,19 +50,19 @@ class Weibull_nonlinear:
 
     def PDF(self ,t ,x):
         return self.hazard(t, x) * self.survival(t, x)
-    
-    def CDF(self ,t ,x):    
+
+    def CDF(self ,t ,x):
         return 1 - self.survival(t, x)
-    
-    def survival(self ,t ,x):   
+
+    def survival(self ,t ,x):
         return torch.exp(-self.cum_hazard(t, x.squeeze()))
-    
+
     def hazard(self, t, x):
         return ((self.gamma/self.alpha)*((t/self.alpha)**(self.gamma-1))) * torch.exp(self.risk_function(x))
-        
+
     def cum_hazard(self, t, x):
         return ((t/self.alpha)**self.gamma) * torch.exp(self.risk_function(x))
-    
+
     def rvs(self, x, u):
         return ((-LOG(u)/torch.exp(self.risk_function(x)))**(1/self.gamma))*self.alpha
 

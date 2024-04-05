@@ -1,5 +1,4 @@
-"""
-Contains the generator for ACNet (in the class DiracPhi).
+"""Contains the generator for ACNet (in the class DiracPhi).
 This is named as such since the mixing variable is a convex combination of dirac delta functions.
 """
 
@@ -8,12 +7,10 @@ import torch.nn as nn
 
 
 class DiracPhi(nn.Module):
-    '''
-    TODO: streamline 3 cases in forward pass.
-    '''
+    """TODO: streamline 3 cases in forward pass."""
 
-    def __init__(self, depth, widths, lc_w_range, shift_w_range, device, tol):
-        super(DiracPhi, self).__init__()
+    def __init__(self, depth, widths, lc_w_range, shift_w_range, device, tol) -> None:
+        super().__init__()
 
         # Depth is the number of hidden layers.
         self.depth = depth
@@ -52,19 +49,14 @@ class DiracPhi(nn.Module):
         lc_sizes, shift_sizes = [], []
 
         # Shift weights
-        prev_width = 1
         for pos in range(depth):
             width = widths[pos]
             shift_sizes.append((width,))
-            prev_width = width
 
         # Linear combination weights
         for pos in range(depth):
             width = widths[pos]
-            if pos < depth-1:
-                next_width = widths[pos+1]
-            else:
-                next_width = 1
+            next_width = widths[pos + 1] if pos < depth - 1 else 1
             lc_sizes.append((next_width, width))
 
         return shift_sizes + lc_sizes
@@ -122,6 +114,6 @@ class DiracPhi(nn.Module):
 
         output = states[-1]
         assert (output >= 0.).all() and \
-        (output <= 1.+ self.tol).all(), "t %s, output %s, tol %s, max %s, min %s" % (t, output, self.tol, torch.max(output), torch.min(output))
+        (output <= 1.+ self.tol).all(), f"t {t}, output {output}, tol {self.tol}, max {torch.max(output)}, min {torch.min(output)}"
 
         return output.reshape(t_raw.size())
